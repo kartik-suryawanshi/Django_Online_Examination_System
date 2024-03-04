@@ -16,13 +16,16 @@ class CourseForm(forms.ModelForm):
         fields=['course_name','question_number','total_marks']
 
 class QuestionForm(forms.ModelForm):
-    
-    #this will show dropdown __str__ method course model is shown on html so override it
-    #to_field_name this will fetch corresponding value  user_id present in course model and return it
-    courseID=forms.ModelChoiceField(queryset=models.Course.objects.all(),empty_label="Course Name", to_field_name="id")
+    # Add file input for Excel sheet
+    excel_file = forms.FileField(label="Upload Excel Sheet", required=False, widget=forms.ClearableFileInput(attrs={'accept': '.xlsx, .xls'}))
+
+    # This will show dropdown __str__ method course model is shown on HTML so override it
+    # to_field_name this will fetch the corresponding value user_id present in the course model and return it
+    courseID = forms.ModelChoiceField(queryset=models.Course.objects.all(), empty_label="Course Name", to_field_name="id")
+
     class Meta:
-        model=models.Question
-        fields=['marks','question','option1','option2','option3','option4','answer']
+        model = models.Question
+        fields = ['marks', 'question', 'option1', 'option2', 'option3', 'option4', 'answer']
         widgets = {
             'question': forms.Textarea(attrs={'rows': 3, 'cols': 50})
         }

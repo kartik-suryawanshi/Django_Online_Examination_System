@@ -14,7 +14,7 @@ from teacher import forms as TFORM
 from student import forms as SFORM
 from django.contrib.auth.models import User
 
-
+import pandas as pd 
 
 def home_view(request):
     if request.user.is_authenticated:
@@ -223,19 +223,43 @@ def admin_question_view(request):
 
 @login_required(login_url='adminlogin')
 def admin_add_question_view(request):
-    questionForm=forms.QuestionForm()
-    if request.method=='POST':
-        questionForm=forms.QuestionForm(request.POST)
-        if questionForm.is_valid():
-            question=questionForm.save(commit=False)
-            course=models.Course.objects.get(id=request.POST.get('courseID'))
-            question.course=course
-            question.save()       
-        else:
-            print("form is invalid")
-        return HttpResponseRedirect('/admin-view-question')
-    return render(request,'exam/admin_add_question.html',{'questionForm':questionForm})
+    questionForm = forms.QuestionForm()
 
+    if request.method == 'POST':
+        questionForm = forms.QuestionForm(request.POST)
+
+        # Check if an Excel file has been uploaded
+        if 'excel_file' in request.FILES:
+            excel_file = request.FILES['excel_file']
+
+            # Assuming the Excel file has columns: Question, Option1, Option2, Option3, Option4, Answer
+            df = pd.read_excel(excel_file)
+
+            for index, row in df.iterrows():
+                question = models.Question()
+                question.course = models.Course.objects.get(id=request.POST.get('courseID'))
+                question.marks = row['Marks']
+                question.question = row['Question']
+                question.option1 = row['Option1']
+                question.option2 = row['Option2']
+                question.option3 = row['Option3']
+                question.option4 = row['Option4']
+                question.answer = row['Answer']
+                question.save()
+
+            return HttpResponseRedirect('/admin-view-question')
+
+        # If no Excel file, proceed with the form data
+        if questionForm.is_valid():
+            question = questionForm.save(commit=False)
+            course = models.Course.objects.get(id=request.POST.get('courseID'))
+            question.course = course
+            question.save()
+            return HttpResponseRedirect('/admin-view-question')
+        else:
+            print("Form is invalid")
+
+    return render(request, 'exam/admin_add_question.html', {'questionForm': questionForm})
 
 @login_required(login_url='adminlogin')
 def admin_view_question_view(request):

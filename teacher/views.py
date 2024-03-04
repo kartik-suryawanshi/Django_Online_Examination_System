@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from exam import models as QMODEL
 from student import models as SMODEL
 from exam import forms as QFORM
-
+import pandas as pd
 
 #for showing signup/login button for teacher
 def teacherclick_view(request):
@@ -90,19 +90,45 @@ def teacher_question_view(request):
 
 @login_required(login_url='teacherlogin')
 @user_passes_test(is_teacher)
+
 def teacher_add_question_view(request):
-    questionForm=QFORM.QuestionForm()
-    if request.method=='POST':
-        questionForm=QFORM.QuestionForm(request.POST)
+    questionForm = QFORM.QuestionForm()
+
+    if request.method == 'POST':
+        questionForm = QFORM.QuestionForm(request.POST)
+
+        # Check if an Excel file has been uploaded
+        if 'excel_file' in request.FILES:
+            excel_file = request.FILES['excel_file']
+
+            # Assuming the Excel file has columns: Marks, Question, Option1, Option2, Option3, Option4, Answer
+            df = pd.read_excel(excel_file)
+
+            for index, row in df.iterrows():
+                question = QMODEL.Question()
+                question.course = QMODEL.Course.objects.get(id=request.POST.get('courseID'))
+                question.marks = row['Marks']
+                question.question = row['Question']
+                question.option1 = row['Option1']
+                question.option2 = row['Option2']
+                question.option3 = row['Option3']
+                question.option4 = row['Option4']
+                question.answer = row['Answer']
+                question.save()
+
+            return HttpResponseRedirect('/teacher/teacher-view-question')
+
+        # If no Excel file, proceed with the form data
         if questionForm.is_valid():
-            question=questionForm.save(commit=False)
-            course=QMODEL.Course.objects.get(id=request.POST.get('courseID'))
-            question.course=course
-            question.save()       
+            question = questionForm.save(commit=False)
+            course = QMODEL.Course.objects.get(id=request.POST.get('courseID'))
+            question.course = course
+            question.save()
+            return HttpResponseRedirect('/teacher/teacher-view-question')
         else:
-            print("form is invalid")
-        return HttpResponseRedirect('/teacher/teacher-view-question')
-    return render(request,'teacher/teacher_add_question.html',{'questionForm':questionForm})
+            print("Form is invalid")
+
+    return render(request, 'teacher/teacher_add_question.html', {'questionForm': questionForm})
 
 @login_required(login_url='teacherlogin')
 @user_passes_test(is_teacher)
